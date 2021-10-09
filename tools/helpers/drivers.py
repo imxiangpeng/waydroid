@@ -7,6 +7,7 @@ import fcntl
 import struct
 import tools.config
 import tools.helpers.run
+import tools.helpers.mount
 
 
 BINDER_DRIVERS = [
@@ -90,10 +91,13 @@ def probeBinderDriver(args):
                 logging.error(output.strip())
 
         if isBinderfsLoaded(args):
-            command = ["mkdir", "-p", "/dev/binderfs"]
-            tools.helpers.run.user(args, command, check=False)
-            command = ["mount", "-t", "binder", "binder", "/dev/binderfs"]
-            tools.helpers.run.user(args, command, check=False)
+            # mxp, 20211007, only mount when it's not mounted
+            if not tools.helpers.mount.ismount("/dev/binderfs"):
+                command = ["mkdir", "-p", "/dev/binderfs"]
+                tools.helpers.run.user(args, command, check=False)
+                command = ["mount", "-t", "binder", "binder", "/dev/binderfs"]
+                tools.helpers.run.user(args, command, check=False)
+
             allocBinderNodes(args, binder_dev_nodes)
             command = ["ln", "-s"]
             command.extend(glob.glob("/dev/binderfs/*"))
