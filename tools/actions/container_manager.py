@@ -39,6 +39,9 @@ def start(args):
         if dpi != "0":
             props.append("ro.sf.lcd_density=" + dpi)
 
+        # mxp, 20211009, instance id
+        props.append("waydroid.unique_id=" + args.id)
+
         final_props = open(full_props_path, "w")
         for prop in props:
             final_props.write(prop + "\n")
@@ -80,7 +83,7 @@ def start(args):
             chmod(path, mode)
 
     def signal_handler(sig, frame):
-        services.hardware_manager.stop(args)
+        #services.hardware_manager.stop(args)
         stop(args)
         sys.exit(0)
 
@@ -88,11 +91,12 @@ def start(args):
     if status == "STOPPED":
         # Load binder and ashmem drivers
         cfg = tools.config.load(args)
-        if cfg["waydroid"]["vendor_type"] == "MAINLINE":
-            if helpers.drivers.probeBinderDriver(args) != 0:
-                logging.error("Failed to load Binder driver")
-            if helpers.drivers.probeAshmemDriver(args) != 0:
-                logging.error("Failed to load Ashmem driver")
+
+        if helpers.drivers.probeBinderDriver(args) != 0:
+            logging.error("Failed to load Binder driver")
+        if helpers.drivers.probeAshmemDriver(args) != 0:
+            logging.error("Failed to load Ashmem driver")
+
         helpers.drivers.loadBinderNodes(args)
         set_permissions([
             "/dev/" + args.BINDER_DRIVER,
@@ -100,18 +104,18 @@ def start(args):
             "/dev/" + args.HWBINDER_DRIVER
         ], "666")
 
-        if os.path.exists(tools.config.session_defaults["config_path"]):
-            session_cfg = tools.config.load_session()
+        if os.path.exists(tools.config.session_defaults_config_path(args)):
+            session_cfg = tools.config.load_session(args)
             if session_cfg["session"]["state"] != "STOPPED":
                 logging.warning("Found session config on state: {}, restart session".format(
                     session_cfg["session"]["state"]))
-                os.remove(tools.config.session_defaults["config_path"])
+                os.remove(tools.config.session_defaults_config_path(args))
         logging.debug("Container manager is waiting for session to load")
-        while not os.path.exists(tools.config.session_defaults["config_path"]):
+        while not os.path.exists(tools.config.session_defaults_config_path(args)):
             time.sleep(1)
         
         # Load session configs
-        session_cfg = tools.config.load_session()
+        session_cfg = tools.config.load_session(args)
         
         # Generate props
         make_prop(args.work + "/waydroid.prop")
@@ -130,8 +134,8 @@ def start(args):
         helpers.images.mount_rootfs(args, cfg["waydroid"]["images_path"])
 
         # Mount data
-        helpers.mount.bind(args, session_cfg["session"]["waydroid_data"],
-                           tools.config.defaults["data"])
+        helpers.mount.bind(args, tools.config.session_defaults_waydroid_data(args),
+                           tools.config.defaults_data(args))
 
         # Cgroup hacks
         if which("start"):
@@ -158,25 +162,25 @@ def start(args):
             time.sleep(1)
         if session_cfg["session"]["state"] != "RUNNING":
             raise OSError("container failed to start")
-        tools.config.save_session(session_cfg)
+        tools.config.save_session(args, session_cfg)
 
-        services.hardware_manager.start(args)
+        #services.hardware_manager.start(args)
 
         signal.signal(signal.SIGINT, signal_handler)
-        while os.path.exists(tools.config.session_defaults["config_path"]):
-            session_cfg = tools.config.load_session()
+        while os.path.exists(tools.config.session_defaults_config_path(args)):
+            session_cfg = tools.config.load_session(args)
             if session_cfg["session"]["state"] == "STOPPED":
                 services.hardware_manager.stop(args)
                 sys.exit(0)
             elif session_cfg["session"]["state"] == "UNFREEZE":
                 session_cfg["session"]["state"] = helpers.lxc.status(args)
-                tools.config.save_session(session_cfg)
+                tools.config.save_session(args, session_cfg)
                 unfreeze(args)
             time.sleep(1)
 
         logging.warning("session manager stopped, stopping container and waiting...")
         stop(args)
-        services.hardware_manager.stop(args)
+        #services.hardware_manager.stop(args)
         start(args)
     else:
         logging.error("WayDroid container is {}".format(status))
@@ -185,10 +189,10 @@ def stop(args):
     status = helpers.lxc.status(args)
     if status != "STOPPED":
         helpers.lxc.stop(args)
-        if os.path.exists(tools.config.session_defaults["config_path"]):
-            session_cfg = tools.config.load_session()
+        if os.path.exists(tools.config.session_defaults_config_path(args)):
+            session_cfg = tools.config.load_session(args)
             session_cfg["session"]["state"] = helpers.lxc.status(args)
-            tools.config.save_session(session_cfg)
+            tools.config.save_session(args, session_cfg)
 
         # Networking
         command = [tools.config.tools_src +
@@ -212,7 +216,7 @@ def stop(args):
         helpers.images.umount_rootfs(args)
 
         # Umount data
-        helpers.mount.umount_all(args, tools.config.defaults["data"])
+        helpers.mount.umount_all(args, tools.config.defaults_data(args))
 
     else:
         logging.error("WayDroid container is {}".format(status))
@@ -229,10 +233,10 @@ def freeze(args):
     status = helpers.lxc.status(args)
     if status == "RUNNING":
         helpers.lxc.freeze(args)
-        if os.path.exists(tools.config.session_defaults["config_path"]):
-            session_cfg = tools.config.load_session()
+        if os.path.exists(tools.config.session_defaults_config_path(args)):
+            session_cfg = tools.config.load_session(args)
             session_cfg["session"]["state"] = helpers.lxc.status(args)
-            tools.config.save_session(session_cfg)
+            tools.config.save_session(args, session_cfg)
     else:
         logging.error("WayDroid container is {}".format(status))
 
@@ -240,9 +244,9 @@ def unfreeze(args):
     status = helpers.lxc.status(args)
     if status == "FROZEN":
         helpers.lxc.unfreeze(args)
-        if os.path.exists(tools.config.session_defaults["config_path"]):
-            session_cfg = tools.config.load_session()
+        if os.path.exists(tools.config.session_defaults_config_path(args)):
+            session_cfg = tools.config.load_session(args)
             session_cfg["session"]["state"] = helpers.lxc.status(args)
-            tools.config.save_session(session_cfg)
+            tools.config.save_session(args, session_cfg)
     else:
         logging.error("WayDroid container is {}".format(status))

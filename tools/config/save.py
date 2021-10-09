@@ -11,8 +11,8 @@ def save(args, cfg):
     with open(args.config, "w") as handle:
         cfg.write(handle)
 
-def save_session(cfg):
-    config_path = tools.config.session_defaults["config_path"]
+def save_session(args, cfg):
+    config_path = args.work + "/session.cfg" #tools.config.session_defaults["config_path"]
     logging.debug("Save session config: " + config_path)
     os.makedirs(os.path.dirname(config_path), 0o700, True)
     with open(config_path, "w") as handle:

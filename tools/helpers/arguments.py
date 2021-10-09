@@ -33,6 +33,8 @@ def arguments_init(subparser):
                      help="rom type (options: \"lineage\", \"bliss\" or OTA channel URL; default is LineageOS)")
     ret.add_argument("-s", "--system_type",
                      help="system type (options: VANILLA, FOSS or GAPPS; default is VANILLA)")
+#    ret.add_argument("-I", "--id",
+#                     help="instance of waydroid")
     return ret
 
 def arguments_status(subparser):
@@ -56,6 +58,8 @@ def arguments_log(subparser):
 
 def arguments_session(subparser):
     ret = subparser.add_parser("session", help="session controller")
+#    ret.add_argument("-I", "--id",
+#                        help="instance number for android")
     sub = ret.add_subparsers(title="subaction", dest="subaction")
     sub.add_parser("start", help="start session")
     sub.add_parser("stop", help="start session")
@@ -69,6 +73,9 @@ def arguments_container(subparser):
     sub.add_parser("restart", help="restart container")
     sub.add_parser("freeze", help="freeze container")
     sub.add_parser("unfreeze", help="unfreeze container")
+
+#    ret.add_argument("-I", "--id",
+#                        help="instance number for android")
     return ret
 
 def arguments_app(subparser):
@@ -104,6 +111,8 @@ def arguments_fullUI(subparser):
 def arguments_shell(subparser):
     ret = subparser.add_parser("shell", help="run remote shell command")
     ret.add_argument('COMMAND', nargs='?', help="command to run")
+    #ret.add_argument("-I", "--id",
+    #                    help="instance number for android")
     return ret
 
 def arguments_logcat(subparser):
@@ -129,6 +138,8 @@ def arguments():
                         " logfiles (this may reduce performance)")
     parser.add_argument("-q", "--quiet", dest="quiet", action="store_true",
                         help="do not output any log messages")
+
+    parser.add_argument("-I", "--id", help="id of waydroid")
 
     # Actions
     sub = parser.add_subparsers(title="action", dest="action")

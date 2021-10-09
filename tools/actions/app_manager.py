@@ -10,7 +10,7 @@ from tools.interfaces import IPlatform
 from tools.interfaces import IStatusBarService
 
 def install(args):
-    if os.path.exists(tools.config.session_defaults["config_path"]):
+    if os.path.exists(tools.config.session_defaults_config_path(args)):
         session_cfg = tools.config.load_session()
         if session_cfg["session"]["state"] == "RUNNING":
             tmp_dir = session_cfg["session"]["waydroid_data"] + "/waydroid_tmp"
@@ -29,7 +29,7 @@ def install(args):
         logging.error("WayDroid session is stopped")
 
 def remove(args):
-    if os.path.exists(tools.config.session_defaults["config_path"]):
+    if os.path.exists(tools.config.session_defaults_config_path(args)):
         session_cfg = tools.config.load_session()
         if session_cfg["session"]["state"] == "RUNNING":
             platformService = IPlatform.get_service(args)
@@ -62,7 +62,7 @@ def launch(args):
         else:
             logging.error("Failed to access IPlatform service")
 
-    if os.path.exists(tools.config.session_defaults["config_path"]):
+    if os.path.exists(tools.config.session_defaults_config_path(args)):
         session_cfg = tools.config.load_session()
 
         if session_cfg["session"]["state"] == "RUNNING":
@@ -81,7 +81,7 @@ def launch(args):
         tools.actions.session_manager.start(args, launch)
 
 def list(args):
-    if os.path.exists(tools.config.session_defaults["config_path"]):
+    if os.path.exists(tools.config.session_defaults_config_path(args)):
         session_cfg = tools.config.load_session()
         if session_cfg["session"]["state"] == "RUNNING":
             platformService = IPlatform.get_service(args)
@@ -114,16 +114,16 @@ def showFullUI(args):
                 time.sleep(0.5)
                 statusBarService.collapse()
 
-    if os.path.exists(tools.config.session_defaults["config_path"]):
-        session_cfg = tools.config.load_session()
+    if os.path.exists(tools.config.session_defaults_config_path(args)):
+        session_cfg = tools.config.load_session(args)
 
         if session_cfg["session"]["state"] == "RUNNING":
             justShow()
         elif session_cfg["session"]["state"] == "FROZEN" or session_cfg["session"]["state"] == "UNFREEZE":
             session_cfg["session"]["state"] = "UNFREEZE"
-            tools.config.save_session(session_cfg)
+            tools.config.save_session(args, session_cfg)
             while session_cfg["session"]["state"] != "RUNNING":
-                session_cfg = tools.config.load_session()
+                session_cfg = tools.config.load_session(args)
             justShow()
         else:
             logging.error("WayDroid container is {}".format(

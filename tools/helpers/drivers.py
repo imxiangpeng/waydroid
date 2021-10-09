@@ -67,20 +67,23 @@ def probeBinderDriver(args):
     has_vndbinder = False
     has_hwbinder = False
     for node in BINDER_DRIVERS:
+        node = node + args.id
         if os.path.exists("/dev/" + node):
             has_binder = True
     if not has_binder:
-        binder_dev_nodes.append(BINDER_DRIVERS[0])
+        binder_dev_nodes.append(BINDER_DRIVERS[0] + args.id)
     for node in VNDBINDER_DRIVERS:
+        node = node + args.id
         if os.path.exists("/dev/" + node):
             has_vndbinder = True
     if not has_vndbinder:
-        binder_dev_nodes.append(VNDBINDER_DRIVERS[0])
+        binder_dev_nodes.append(VNDBINDER_DRIVERS[0] + args.id)
     for node in HWBINDER_DRIVERS:
+        node = node + args.id
         if os.path.exists("/dev/" + node):
             has_hwbinder = True
     if not has_hwbinder:
-        binder_dev_nodes.append(HWBINDER_DRIVERS[0])
+        binder_dev_nodes.append(HWBINDER_DRIVERS[0] + args.id)
 
     if len(binder_dev_nodes) > 0:
         if not isBinderfsLoaded(args):
@@ -123,49 +126,31 @@ def setupBinderNodes(args):
     has_binder = False
     has_vndbinder = False
     has_hwbinder = False
-    if args.vendor_type == "MAINLINE":
-        probeBinderDriver(args)
-        for node in BINDER_DRIVERS:
-            if os.path.exists("/dev/" + node):
-                has_binder = True
-                args.BINDER_DRIVER = node
-        if not has_binder:
-            raise OSError('Binder node "binder" for waydroid not found')
 
-        for node in VNDBINDER_DRIVERS:
-            if os.path.exists("/dev/" + node):
-                has_vndbinder = True
-                args.VNDBINDER_DRIVER = node
-        if not has_vndbinder:
-            raise OSError('Binder node "vndbinder" for waydroid not found')
+    probeBinderDriver(args)
+    for node in BINDER_DRIVERS:
+        node = node + args.id
+        if os.path.exists("/dev/" + node):
+            has_binder = True
+            args.BINDER_DRIVER = node
+    if not has_binder:
+        raise OSError('Binder node "binder" for waydroid not found')
 
-        for node in HWBINDER_DRIVERS:
-            if os.path.exists("/dev/" + node):
-                has_hwbinder = True
-                args.HWBINDER_DRIVER = node
-        if not has_hwbinder:
-            raise OSError('Binder node "hwbinder" for waydroid not found')
-    else:
-        for node in BINDER_DRIVERS[:-1]:
-            if os.path.exists("/dev/" + node):
-                has_binder = True
-                args.BINDER_DRIVER = node
-        if not has_binder:
-            raise OSError('Binder node "binder" for waydroid not found')
+    for node in VNDBINDER_DRIVERS:
+        node = node + args.id
+        if os.path.exists("/dev/" + node):
+            has_vndbinder = True
+            args.VNDBINDER_DRIVER = node
+    if not has_vndbinder:
+        raise OSError('Binder node "vndbinder" for waydroid not found')
 
-        for node in VNDBINDER_DRIVERS[:-1]:
-            if os.path.exists("/dev/" + node):
-                has_vndbinder = True
-                args.VNDBINDER_DRIVER = node
-        if not has_vndbinder:
-            raise OSError('Binder node "vndbinder" for waydroid not found')
-
-        for node in HWBINDER_DRIVERS[:-1]:
-            if os.path.exists("/dev/" + node):
-                has_hwbinder = True
-                args.HWBINDER_DRIVER = node
-        if not has_hwbinder:
-            raise OSError('Binder node "hwbinder" for waydroid not found')
+    for node in HWBINDER_DRIVERS:
+        node = node + args.id
+        if os.path.exists("/dev/" + node):
+            has_hwbinder = True
+            args.HWBINDER_DRIVER = node
+    if not has_hwbinder:
+        raise OSError('Binder node "hwbinder" for waydroid not found')
 
 def loadBinderNodes(args):
     cfg = tools.config.load(args)

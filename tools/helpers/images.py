@@ -88,22 +88,22 @@ def replace(args, system_zip, system_time, vendor_zip, vendor_time):
 
 def mount_rootfs(args, images_dir):
     helpers.mount.mount(args, images_dir + "/system.img",
-                        tools.config.defaults["rootfs"], umount=True)
+                        args.rootfs, umount=True)
     helpers.mount.mount(args, images_dir + "/vendor.img",
-                           tools.config.defaults["rootfs"] + "/vendor")
+                           args.rootfs + "/vendor")
     for egl_path in ["/vendor/lib/egl", "/vendor/lib64/egl"]:
         if os.path.isdir(egl_path):
             helpers.mount.bind(
-                args, egl_path, tools.config.defaults["rootfs"] + egl_path)
+                args, egl_path, args.rootfs + egl_path)
     if helpers.mount.ismount("/odm"):
         helpers.mount.bind(
-            args, "/odm", tools.config.defaults["rootfs"] + "/odm_extra")
+            args, "/odm", args.rootfs + "/odm_extra")
     else:
         if os.path.isdir("/vendor/odm"):
             helpers.mount.bind(
-                args, "/vendor/odm", tools.config.defaults["rootfs"] + "/odm_extra")
+                args, "/vendor/odm", args.rootfs + "/odm_extra")
     helpers.mount.bind_file(args, args.work + "/waydroid.prop",
-                            tools.config.defaults["rootfs"] + "/vendor/waydroid.prop")
+                            args.rootfs + "/vendor/waydroid.prop")
 
 def umount_rootfs(args):
-    helpers.mount.umount_all(args, tools.config.defaults["rootfs"])
+    helpers.mount.umount_all(args, args.rootfs)

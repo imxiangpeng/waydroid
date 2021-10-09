@@ -19,15 +19,9 @@ def start(args, unlocked_cb=None):
     if xdg_session != "wayland":
         logging.warning('XDG Session is not "wayland"')
 
-    cfg = tools.config.load_session()
-    waydroid_data = cfg["session"]["waydroid_data"]
-    #TODO: Drop me
-    old_user_waydroid = cfg["session"]["host_user"] + "/waydroid"
-    if os.path.isdir(old_user_waydroid):
-        if not os.path.isdir(waydroid_data):
-            shutil.move(old_user_waydroid, cfg["session"]["xdg_data_home"])
-        else:
-            os.removedirs(old_user_waydroid)
+    cfg = tools.config.load_session(args)
+    waydroid_data = tools.config.session_defaults_waydroid_data(args) #cfg["session"]["waydroid_data"]
+
     if not os.path.isdir(waydroid_data):
         os.makedirs(waydroid_data)
     dpi = tools.helpers.props.host_get(args, "ro.sf.lcd_density")
@@ -38,12 +32,12 @@ def start(args, unlocked_cb=None):
         else:
             dpi = "0"
     cfg["session"]["lcd_density"] = dpi
-    tools.config.save_session(cfg)
+    tools.config.save_session(args, cfg)
 
     container_state = "IDLE"
     signal.signal(signal.SIGINT, signal_handler)
-    while os.path.exists(tools.config.session_defaults["config_path"]):
-        session_cfg = tools.config.load_session()
+    while os.path.exists(tools.config.session_defaults_config_path(args)):
+        session_cfg = tools.config.load_session(args)
         if container_state != session_cfg["session"]["state"]:
             if session_cfg["session"]["state"] == "RUNNING":
                 services.user_manager.start(args, unlocked_cb)

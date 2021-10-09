@@ -24,19 +24,28 @@ def main():
         os.umask(0o000)
         # Parse arguments, set up logging
         args = helpers.arguments()
+        if not args.id:
+            print('You not special instance, using default 0')
+            args.instance = "0"
+
+        print('args.instance {}'.format(args.id))
         args.cache = {}
-        args.work = config.defaults["work"]
+        args.work = config.defaults["work"] + args.id
         args.config = args.work + "/waydroid.cfg"
+        args.lxc = args.work + "/lxc"
+        args.rootfs = args.work + "/rootfs"
         args.log = args.work + "/waydroid.log"
         args.sudo_timer = True
         args.timeout = 1800
 
+        print('args.config {}'.format(args.config))
         if not os.path.isfile(args.config):
             if args.action and args.action != "init":
                 print('ERROR: WayDroid is not initialized, run "waydroid init"')
                 return 0
             elif os.geteuid() == 0 and args.action == "init":
                 if not os.path.exists(args.work):
+                    print('mkdir dir:' + args.work)
                     os.mkdir(args.work)
             else:
                 args.log = "/tmp/tools.log"

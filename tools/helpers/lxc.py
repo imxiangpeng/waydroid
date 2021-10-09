@@ -65,10 +65,10 @@ def generate_nodes_lxc_config(args):
     make_entry("/dev/" + args.VNDBINDER_DRIVER, "dev/vndbinder", check=False)
     make_entry("/dev/" + args.HWBINDER_DRIVER, "dev/hwbinder", check=False)
 
-    if args.vendor_type != "MAINLINE":
-        if not make_entry("/dev/hwbinder", "dev/host_hwbinder"):
-            raise OSError('Binder node "hwbinder" of host not found')
-        make_entry("/vendor", "vendor_extra", options="bind,optional 0 0")
+    #if args.vendor_type != "MAINLINE":
+    #    if not make_entry("/dev/hwbinder", "dev/host_hwbinder"):
+    #        raise OSError('Binder node "hwbinder" of host not found')
+    #    make_entry("/vendor", "vendor_extra", options="bind,optional 0 0")
 
     # Necessary device nodes for adb
     make_entry("none", "dev/pts", "devpts", "defaults,mode=644,ptmxmode=666,create=dir 0 0", False)
@@ -79,10 +79,10 @@ def generate_nodes_lxc_config(args):
 
     # Mount /data
     make_entry("tmpfs", "mnt", "tmpfs", "mode=0755,uid=0,gid=1000", False)
-    make_entry(tools.config.defaults["data"], "data", options="bind 0 0", check=False)
+    make_entry(tools.config.defaults_data(args), "data", options="bind 0 0", check=False)
 
     # Mount host permissions
-    make_entry(tools.config.defaults["host_perms"],
+    make_entry(tools.config.defaults_host_perms(args),
                "vendor/etc/host-permissions", options="bind,optional 0 0")
 
     # Recursive mount /run to provide necessary host sockets
@@ -116,7 +116,7 @@ def generate_nodes_lxc_config(args):
 
 
 def set_lxc_config(args):
-    lxc_path = tools.config.defaults["lxc"] + "/waydroid"
+    lxc_path = args.lxc + "/waydroid"
     config_file = "config_2"
     lxc_ver = get_lxc_version(args)
     if lxc_ver == 0:
@@ -130,6 +130,10 @@ def set_lxc_config(args):
     command = ["cp", "-fpr", config_path, lxc_path + "/config"]
     tools.helpers.run.user(args, command)
     command = ["sed", "-i", "s/LXCARCH/{}/".format(platform.machine()), lxc_path + "/config"]
+    tools.helpers.run.user(args, command)
+
+    # mxp, 20211009, auto adjust some field for multi instance
+    command = ["sed", "-i", "s%/var/lib/waydroid%{}%".format(args.work), lxc_path + "/config"]
     tools.helpers.run.user(args, command)
 
     nodes = generate_nodes_lxc_config(args)
@@ -209,13 +213,12 @@ def make_base_props(args):
         opengles = "196608"
     props.append("ro.opengles.version=" + opengles)
 
-    props.append("waydroid.system_ota=" + args.system_ota)
-    props.append("waydroid.vendor_ota=" + args.vendor_ota)
+    #props.append("waydroid.system_ota=" + args.system_ota)
+    #props.append("waydroid.vendor_ota=" + args.vendor_ota)
     props.append("waydroid.tools_version=" + tools.config.version)
 
-    if args.vendor_type == "MAINLINE":
-        props.append("ro.vndk.lite=true")
-        props.append("ro.hardware.camera=v4l2")
+    props.append("ro.vndk.lite=true")
+    props.append("ro.hardware.camera=v4l2")
 
     base_props = open(args.work + "/waydroid_base.prop", "w")
     for prop in props:
@@ -241,42 +244,42 @@ def setup_host_perms(args):
             copy_list.append(
                 "/odm/etc/permissions/sku_{}/android.hardware.consumerir.xml".format(sku))
 
-    if not os.path.exists(tools.config.defaults["host_perms"]):
-        os.mkdir(tools.config.defaults["host_perms"])
+    if not os.path.exists(tools.config.defaults_host_perms(args)):
+        os.mkdir(tools.config.defaults_host_perms(args))
 
     for filename in copy_list:
-        shutil.copy(filename, tools.config.defaults["host_perms"])
+        shutil.copy(filename, tools.config.defaults_host_perms(args))
 
 def status(args):
-    command = ["lxc-info", "-P", tools.config.defaults["lxc"], "-n", "waydroid", "-sH"]
+    command = ["lxc-info", "-P", args.lxc, "-n", "waydroid", "-sH"]
     out = subprocess.run(command, stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
     os.chmod(args.log, 0o666)
     return out
 
 def start(args):
-    command = ["lxc-start", "-P", tools.config.defaults["lxc"],
+    command = ["lxc-start", "-P", args.lxc,
                "-F", "-n", "waydroid", "--", "/init"]
     tools.helpers.run.user(args, command, output="background")
 
 def stop(args):
     command = ["lxc-stop", "-P",
-               tools.config.defaults["lxc"], "-n", "waydroid", "-k"]
+               args.lxc, "-n", "waydroid", "-k"]
     tools.helpers.run.user(args, command)
 
 def freeze(args):
-    command = ["lxc-freeze", "-P", tools.config.defaults["lxc"], "-n", "waydroid"]
+    command = ["lxc-freeze", "-P", args.lxc, "-n", "waydroid"]
     tools.helpers.run.user(args, command)
 
 def unfreeze(args):
     command = ["lxc-unfreeze", "-P",
-               tools.config.defaults["lxc"], "-n", "waydroid"]
+               args.lxc, "-n", "waydroid"]
     tools.helpers.run.user(args, command)
 
 def shell(args):
     if status(args) != "RUNNING":
         logging.error("WayDroid container is {}".format(status(args)))
         return
-    command = ["lxc-attach", "-P", tools.config.defaults["lxc"],
+    command = ["lxc-attach", "-P", args.lxc,
                "-n", "waydroid", "--"]
     if args.COMMAND:
         command.append(args.COMMAND)
@@ -288,6 +291,6 @@ def logcat(args):
     if status(args) != "RUNNING":
         logging.error("WayDroid container is {}".format(status(args)))
         return
-    command = ["lxc-attach", "-P", tools.config.defaults["lxc"],
+    command = ["lxc-attach", "-P", args.lxc,
                "-n", "waydroid", "--", "/system/bin/logcat"]
     subprocess.run(command)

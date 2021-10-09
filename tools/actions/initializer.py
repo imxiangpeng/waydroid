@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 import logging
 import os
+import shutil
 from tools import helpers
 import tools.config
 
@@ -22,16 +23,30 @@ def setup_config(args):
     cfg["waydroid"]["arch"] = args.arch
 
     preinstalled_images = tools.config.defaults["preinstalled_images_path"]
+    """
     if not args.images_path:
         if os.path.isdir(preinstalled_images):
             if os.path.isfile(preinstalled_images + "/system.img") and os.path.isfile(preinstalled_images + "/vendor.img"):
                 args.images_path = preinstalled_images
             else:
                 logging.error("Missing system or vendor on preinstalled images dir, fallback to default")
+    """
     if not args.images_path:
-        args.images_path = tools.config.defaults["images_path"]
+        args.images_path = tools.config.defaults_images_path(args)
     cfg["waydroid"]["images_path"] = args.images_path
 
+    if not os.path.exists(args.images_path):
+        os.mkdir(args.images_path)
+
+    if os.path.isdir(preinstalled_images):
+        if os.path.isfile(preinstalled_images + "/system.img") and os.path.isfile(preinstalled_images + "/vendor.img"):
+            logging.error("Copying default images to work directory")
+            shutil.copy(preinstalled_images + "/system.img", args.images_path + "/system.img")
+            shutil.copy(preinstalled_images + "/vendor.img", args.images_path + "/vendor.img")
+        else:
+            logging.error("Missing system or vendor on preinstalled images dir, fallback to default")
+
+    """
     channels_cfg = tools.config.load_channels()
     if not args.system_channel:
         args.system_channel = channels_cfg["channels"]["system_channel"]
@@ -74,26 +89,41 @@ def setup_config(args):
     cfg["waydroid"]["vendor_type"] = args.vendor_type
     cfg["waydroid"]["system_ota"] = args.system_ota
     cfg["waydroid"]["vendor_ota"] = args.vendor_ota
+    """
+
+    # mxp, 20211009, manual add some fields
+    # args.vendor_type = "MAINLINE"
+    cfg["waydroid"]["id"] = args.id
+    cfg["waydroid"]["rootfs"] = args.work + "/rootfs"
+    cfg["waydroid"]["lxc"] = args.work + "/lxc"
+
     helpers.drivers.setupBinderNodes(args)
     cfg["waydroid"]["binder"] = args.BINDER_DRIVER
     cfg["waydroid"]["vndbinder"] = args.VNDBINDER_DRIVER
     cfg["waydroid"]["hwbinder"] = args.HWBINDER_DRIVER
     tools.config.save(args, cfg)
 
+    args.configs = cfg;
+
 def init(args):
     if not os.path.isfile(args.config) or args.force:
         setup_config(args)
         status = "STOPPED"
-        if os.path.exists(tools.config.defaults["lxc"] + "/waydroid"):
+        #print("args config:" + args.configs["wayland"]["lxc"])
+        #if os.path.exists(tools.config.defaults["lxc"] + "/waydroid"):
+        #    status = helpers.lxc.status(args)
+        if os.path.exists(args.lxc + "/waydroid"):
             status = helpers.lxc.status(args)
         if status != "STOPPED":
             logging.info("Stopping container")
             helpers.lxc.stop(args)
         helpers.images.umount_rootfs(args)
-        if args.images_path != tools.config.defaults["preinstalled_images_path"]:
-            helpers.images.get(args)
-        if not os.path.isdir(tools.config.defaults["rootfs"]):
-            os.mkdir(tools.config.defaults["rootfs"])
+        #if args.images_path != tools.config.defaults["preinstalled_images_path"]:
+        #    helpers.images.get(args)
+        #if not os.path.isdir(tools.config.defaults["rootfs"]):
+        #    os.mkdir(tools.config.defaults["rootfs"])
+        if not os.path.isdir(args.rootfs):
+            os.mkdir(args.rootfs)
         helpers.lxc.setup_host_perms(args)
         helpers.lxc.set_lxc_config(args)
         helpers.lxc.make_base_props(args)

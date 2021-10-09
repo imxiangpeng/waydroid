@@ -39,17 +39,18 @@ session_config_keys = ["user_name",
 # overridden on the commandline)
 defaults = {
     "arch": "arm64",
-    "work": "/var/lib/waydroid",
+    "instance": "0",
+    "work": "/var/lib/waydroid_multi/",
     "vendor_type": "MAINLINE",
     "system_datetime": "0",
     "vendor_datetime": "0",
     "preinstalled_images_path": "/usr/share/waydroid-extra/images"
 }
-defaults["images_path"] = defaults["work"] + "/images"
-defaults["rootfs"] = defaults["work"] + "/rootfs"
-defaults["data"] = defaults["work"] + "/data"
-defaults["lxc"] = defaults["work"] + "/lxc"
-defaults["host_perms"] = defaults["work"] + "/host-permissions"
+#defaults["images_path"] = defaults["work"] + "/images"
+#defaults["rootfs"] = defaults["work"] + "/rootfs"
+#defaults["data"] = defaults["work"] + "/data"
+#defaults["lxc"] = defaults["work"] + "/lxc"
+#defaults["host_perms"] = defaults["work"] + "/host-permissions"
 
 session_defaults = {
     "user_name": pwd.getpwuid(os.getuid()).pw_name,
@@ -63,9 +64,9 @@ session_defaults = {
     "state": "STOPPED",
     "lcd_density": "0"
 }
-session_defaults["config_path"] = defaults["work"] + "/session.cfg"
-session_defaults["waydroid_data"] = session_defaults["xdg_data_home"] + \
-    "/waydroid/data"
+#session_defaults["config_path"] = defaults["work"] + "/session.cfg"
+#session_defaults["waydroid_data"] = session_defaults["xdg_data_home"] + \
+#    "/waydroid/data"
 if session_defaults["pulse_runtime_path"] == "None":
     session_defaults["pulse_runtime_path"] = session_defaults["xdg_runtime_dir"] + "/pulse"
 
@@ -80,3 +81,21 @@ channels_config_keys = ["system_channel",
                         "vendor_channel",
                         "rom_type",
                         "system_type"]
+
+def defaults_images_path(args):
+    return args.work + "/images"
+def defaults_rootfs(args):
+    return args.work + "/rootfs"
+def defaults_lxc(args):
+    return args.work + "/lxc"
+def defaults_data(args):
+    return args.work + "/data"
+def defaults_host_perms(args):
+    return args.work + "/host-permissions"
+
+def session_defaults_config_path(args):
+    return args.work + "/session.cfg"
+
+def session_defaults_waydroid_data(args):
+    return session_defaults["xdg_data_home"] + \
+    "/waydroid/{}/data".format(args.id)

@@ -28,8 +28,8 @@ def load(args):
 
     return cfg
 
-def load_session():
-    config_path = tools.config.session_defaults["config_path"]
+def load_session(args):
+    config_path = args.work + "/session.cfg" #tools.config.session_defaults["config_path"]
     cfg = configparser.ConfigParser()
     if os.path.isfile(config_path):
         cfg.read(config_path)
